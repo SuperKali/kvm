@@ -23,7 +23,7 @@ export CC="${CROSS_PREFIX}-gcc"
 # Build ALSA
 cd alsa-lib-1.2.14
 if [ ! -f .built ]; then
-  ./configure --host arm-rockchip830-linux-uclibcgnueabihf --enable-static=yes --enable-shared=no --with-pcm-plugins=rate,linear --disable-seq --disable-rawmidi --disable-ucm
+  ./configure --host arm-rockchip830-linux-uclibcgnueabihf --enable-static=yes --enable-shared=no --with-pcm-plugins=rate,linear --disable-seq --enable-topology
   make -j$(nproc)
   touch .built
 fi

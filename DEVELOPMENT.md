@@ -73,6 +73,8 @@ This ensures compatibility with shell scripts and build tools used in the projec
    #
    # **Note:** This is required for the new in-process audio pipeline. If you skip this step, audio will not work.
    ```
+   
+   > 💡 **Tip:** Use `make help` to see all available build targets, or see the [Build System Reference](#build-system-reference) section for comprehensive documentation of all Makefile targets and tools.
 
 4. **Find your JetKVM IP address** (check your router or device screen)
 
@@ -345,6 +347,217 @@ export JETKVM_PROXY_URL="ws://<IP>"
 - [ ] Tests pass
 - [ ] Code follows style guidelines
 - [ ] Documentation updated (if needed)
+
+---
+
+## Build System Reference
+
+### Makefile Targets
+
+The JetKVM build system provides a comprehensive set of Make targets for development, building, testing, and deployment. Use `make help` to see all available targets.
+
+#### Development Environment Setup
+
+| Target | Description | Dependencies | Environment Variables |
+|--------|-------------|--------------|----------------------|
+| `setup_toolchain` | Clone RV1106 cross-compilation toolchain | None | `JETKVM_HOME` |
+| `build_audio_deps` | Build ALSA and Opus static libraries for ARM | `setup_toolchain` | `JETKVM_HOME`, `TOOLCHAIN_DIR`, `AUDIO_LIBS_DIR` |
+| `dev_env` | Complete development environment setup | `build_audio_deps` | All above |
+
+#### Building Targets
+
+| Target | Description | Dependencies | Environment Variables |
+|--------|-------------|--------------|----------------------|
+| `build_dev` | Build development version with audio support | `build_audio_deps`, `hash_resource` | `VERSION_DEV`, `TOOLCHAIN_DIR`, `AUDIO_LIBS_DIR` |
+| `build_release` | Build production release version | `frontend`, `build_audio_deps`, `hash_resource` | `VERSION`, `TOOLCHAIN_DIR`, `AUDIO_LIBS_DIR` |
+| `frontend` | Build React frontend only | None | None |
+| `hash_resource` | Generate SHA256 hash for jetkvm_native | None | None |
+
+#### Testing Targets
+
+| Target | Description | Dependencies | Environment Variables |
+|--------|-------------|--------------|----------------------|
+| `build_test2json` | Build test2json utility for ARM | None | `GO_CMD` |
+| `build_gotestsum` | Build gotestsum test runner for ARM | None | `GO_CMD` |
+| `build_dev_test` | Build all tests for device deployment | `build_test2json`, `build_gotestsum` | `TEST_DIRS`, `KVM_PKG_NAME` |
+
+#### Release Management
+
+| Target | Description | Dependencies | Environment Variables |
+|--------|-------------|--------------|----------------------|
+| `dev_release` | Build and upload development release to R2 | `frontend`, `build_dev` | `VERSION_DEV` |
+| `release` | Build and upload production release to R2 | `build_release` | `VERSION` |
+
+#### Key Environment Variables
+
+| Variable | Default Value | Description |
+|----------|---------------|-------------|
+| `JETKVM_HOME` | `$HOME/.jetkvm` | JetKVM home directory for toolchain and libraries |
+| `TOOLCHAIN_DIR` | `$JETKVM_HOME/rv1106-system` | RV1106 cross-compilation toolchain directory |
+| `AUDIO_LIBS_DIR` | `$JETKVM_HOME/audio-libs` | ALSA and Opus static libraries directory |
+| `VERSION` | `0.4.6` | Production version number |
+| `VERSION_DEV` | `0.4.7-dev<timestamp>` | Development version with timestamp |
+| `BRANCH` | Auto-detected | Current git branch |
+| `BIN_DIR` | `./bin` | Binary output directory |
+| `BUILDDATE` | Auto-generated | Build timestamp |
+| `REVISION` | Auto-detected | Git commit hash |
+
+#### Usage Examples
+
+```bash
+# Set up complete development environment
+make dev_env
+
+# Build development version
+make build_dev
+
+# Build with custom version
+VERSION=1.0.0 make release
+
+# Build frontend then backend
+make frontend build_dev
+
+# View all available targets
+make help
+```
+
+### Tools Directory Scripts
+
+The `tools/` directory contains essential scripts for cross-compilation, audio library building, and deployment. Each script is designed to be run independently or as part of the Makefile targets.
+
+#### Core Build Scripts
+
+**`setup_rv1106_toolchain.sh`**
+- **Purpose**: Downloads and sets up the RV1106 ARM cross-compilation toolchain
+- **Location**: Clones to `$HOME/.jetkvm/rv1106-system`
+- **Repository**: `https://github.com/jetkvm/rv1106-system.git`
+- **Usage**: `bash tools/setup_rv1106_toolchain.sh`
+- **Dependencies**: Git, internet connection
+- **Output**: Cross-compilation toolchain for ARM RV1106 architecture
+
+**`build_audio_deps.sh`**
+- **Purpose**: Cross-compiles ALSA library and Opus codec as static libraries for ARM
+- **Dependencies**: `setup_rv1106_toolchain.sh` must be run first
+- **Libraries Built**:
+  - ALSA lib 1.2.14 (with PCM plugins, topology support)
+  - Opus 1.5.2 (with fixed-point optimization)
+- **Output Directory**: `$HOME/.jetkvm/audio-libs`
+- **Usage**: `bash tools/build_audio_deps.sh`
+- **Configuration**: Static linking, ARM-optimized builds
+
+**`build_alsa_utils.sh`**
+- **Purpose**: Cross-compiles ALSA utilities (aplay, arecord, amixer, etc.) for ARM
+- **Dependencies**: Both `setup_rv1106_toolchain.sh` and `build_audio_deps.sh`
+- **Utilities Built**:
+  - `aplay` - Audio playback utility
+  - `arecord` - Audio recording utility
+  - `amixer` - Audio mixer control
+  - `alsactl` - ALSA control utility
+  - `speaker-test` - Speaker testing utility
+- **Output Directory**: `$HOME/.jetkvm/audio-libs/alsa-utils-bin/`
+- **Usage**: `bash tools/build_alsa_utils.sh`
+
+#### Deployment Scripts
+
+**`deploy_alsa_utils.sh`**
+- **Purpose**: Deploy built ALSA utilities to JetKVM device via SSH
+- **Target Directory**: `/userdata/jetkvm/alsa/` on device
+- **Features**:
+  - SSH-based deployment (no SCP required)
+  - Optional testing after deployment
+  - Configurable target path and user
+- **Usage**: 
+  ```bash
+  bash tools/deploy_alsa_utils.sh -r 192.168.1.100
+  bash tools/deploy_alsa_utils.sh -r 192.168.1.100 --test
+  ```
+- **Options**:
+  - `-r, --remote <ip>` - Target device IP (required)
+  - `-u, --user <user>` - SSH user (default: root)
+  - `-p, --path <path>` - Target path (default: /userdata/jetkvm/alsa)
+  - `-t, --test` - Run tests after deployment
+
+**`deploy_to_jetkvm.sh`**
+- **Purpose**: Deploy main JetKVM application binary to device
+- **Features**:
+  - Automatic binary building via devpod if needed
+  - Checksum verification
+  - Service management (stop/start)
+  - Force transfer option
+- **Target**: `/userdata/jetkvm/bin/jetkvm_app` on device
+- **Usage**: 
+  ```bash
+  bash tools/deploy_to_jetkvm.sh -r 192.168.1.100
+  bash tools/deploy_to_jetkvm.sh -r 192.168.1.100 --force
+  ```
+
+**`build_and_deploy_alsa.sh`**
+- **Purpose**: Complete ALSA workflow - build toolchain, dependencies, utilities, and deploy
+- **Features**:
+  - Intelligent caching (skips already-built components)
+  - Colored output with progress indicators
+  - Force rebuild option
+  - Optional testing
+  - Comprehensive error handling
+- **Usage**:
+  ```bash
+  # Build only
+  bash tools/build_and_deploy_alsa.sh
+  
+  # Build and deploy
+  bash tools/build_and_deploy_alsa.sh -d 192.168.1.100
+  
+  # Build, deploy, and test
+  bash tools/build_and_deploy_alsa.sh -d 192.168.1.100 -t
+  
+  # Force rebuild everything
+  bash tools/build_and_deploy_alsa.sh -f -d 192.168.1.100
+  ```
+- **Options**:
+  - `-d, --deploy <ip>` - Deploy to device IP
+  - `-t, --test` - Run tests after deployment
+  - `-f, --force` - Force rebuild all components
+  - `-v, --verbose` - Enable verbose output
+
+#### Script Dependencies and Workflow
+
+```
+setup_rv1106_toolchain.sh
+         ↓
+build_audio_deps.sh
+         ↓
+build_alsa_utils.sh
+         ↓
+deploy_alsa_utils.sh (optional)
+```
+
+**Complete Workflow Example:**
+```bash
+# Method 1: Using individual scripts
+bash tools/setup_rv1106_toolchain.sh
+bash tools/build_audio_deps.sh
+bash tools/build_alsa_utils.sh
+bash tools/deploy_alsa_utils.sh -r 192.168.1.100 --test
+
+# Method 2: Using combined script
+bash tools/build_and_deploy_alsa.sh -d 192.168.1.100 -t
+
+# Method 3: Using Makefile
+make dev_env  # Sets up toolchain and builds audio deps
+make build_dev  # Builds main application
+```
+
+#### Output Locations
+
+| Component | Location | Description |
+|-----------|----------|-------------|
+| Toolchain | `$HOME/.jetkvm/rv1106-system/` | ARM cross-compilation toolchain |
+| ALSA Library | `$HOME/.jetkvm/audio-libs/alsa-lib-1.2.14/` | Static ALSA library |
+| Opus Library | `$HOME/.jetkvm/audio-libs/opus-1.5.2/` | Static Opus codec library |
+| ALSA Utilities | `$HOME/.jetkvm/audio-libs/alsa-utils-bin/` | Cross-compiled ALSA utilities |
+| Main Binary | `./bin/jetkvm_app` | JetKVM application binary |
+| Device ALSA Utils | `/userdata/jetkvm/alsa/` | ALSA utilities on device |
+| Device Binary | `/userdata/jetkvm/bin/jetkvm_app` | Main application on device |
 
 ---
 

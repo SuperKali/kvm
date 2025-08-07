@@ -1,5 +1,46 @@
 # --- JetKVM Audio/Toolchain Dev Environment Setup ---
-.PHONY: setup_toolchain build_audio_deps dev_env
+.PHONY: setup_toolchain build_audio_deps dev_env help
+
+# Display help information about all available targets
+help:
+	@echo "JetKVM Build System - Available Targets:"
+	@echo ""
+	@echo "Development Environment Setup:"
+	@echo "  setup_toolchain     - Clone RV1106 toolchain to \$$HOME/.jetkvm/rv1106-system"
+	@echo "  build_audio_deps    - Build ALSA and Opus static libraries for ARM (requires setup_toolchain)"
+	@echo "  dev_env             - Complete development environment setup (toolchain + audio deps)"
+	@echo ""
+	@echo "Building:"
+	@echo "  build_dev           - Build development version of JetKVM app with audio support"
+	@echo "  build_release       - Build production release version"
+	@echo "  frontend            - Build React frontend only"
+	@echo "  hash_resource       - Generate SHA256 hash for jetkvm_native resource"
+	@echo ""
+	@echo "Testing:"
+	@echo "  build_test2json     - Build test2json utility for ARM"
+	@echo "  build_gotestsum     - Build gotestsum test runner for ARM"
+	@echo "  build_dev_test      - Build all tests for device deployment"
+	@echo ""
+	@echo "Release Management:"
+	@echo "  dev_release         - Build and upload development release to R2"
+	@echo "  release             - Build and upload production release to R2"
+	@echo ""
+	@echo "Environment Variables:"
+	@echo "  JETKVM_HOME         - JetKVM home directory (default: \$$HOME/.jetkvm)"
+	@echo "  TOOLCHAIN_DIR       - Toolchain directory (default: \$$JETKVM_HOME/rv1106-system)"
+	@echo "  AUDIO_LIBS_DIR      - Audio libraries directory (default: \$$JETKVM_HOME/audio-libs)"
+	@echo "  VERSION             - Production version (default: 0.4.6)"
+	@echo "  VERSION_DEV         - Development version (default: 0.4.7-dev<timestamp>)"
+	@echo "  BRANCH              - Git branch (auto-detected)"
+	@echo "  BIN_DIR             - Binary output directory (default: ./bin)"
+	@echo ""
+	@echo "Usage Examples:"
+	@echo "  make dev_env                    # Set up complete development environment"
+	@echo "  make build_dev                  # Build development version"
+	@echo "  VERSION=1.0.0 make release      # Build and release version 1.0.0"
+	@echo "  make frontend build_dev         # Build frontend then backend"
+	@echo ""
+	@echo "For more information, see DEVELOPMENT.md"
 
 # Clone the rv1106-system toolchain to $HOME/.jetkvm/rv1106-system
 setup_toolchain:
