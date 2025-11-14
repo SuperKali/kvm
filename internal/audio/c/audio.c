@@ -56,15 +56,15 @@ static uint8_t channels = 2;
 static uint16_t frame_size = 960;  // 20ms frames at 48kHz
 
 static uint32_t opus_bitrate = 128000;
-static uint8_t opus_complexity = 5;  // Higher complexity for better quality
+static uint8_t opus_complexity = 0;  // Lowest complexity for fastest encoding and minimal latency
 static uint16_t max_packet_size = 1500;
 
 // Opus encoder constants (hardcoded for production)
-#define OPUS_VBR 1                      // VBR enabled
+#define OPUS_VBR 1                      // VBR enabled for better timing tolerance
 #define OPUS_VBR_CONSTRAINT 1           // Constrained VBR (prevents bitrate starvation at low volumes)
 #define OPUS_SIGNAL_TYPE 3002           // OPUS_SIGNAL_MUSIC (better transient handling)
 #define OPUS_BANDWIDTH 1104             // OPUS_BANDWIDTH_SUPERWIDEBAND (16kHz)
-#define OPUS_DTX 1                      // DTX enabled (bandwidth optimization)
+#define OPUS_DTX 0                      // DTX disabled to prevent choppy audio
 #define OPUS_LSB_DEPTH 16               // 16-bit depth
 
 // ALSA retry configuration
@@ -288,7 +288,7 @@ static int configure_alsa_device(snd_pcm_t *handle, const char *device_name) {
 	err = snd_pcm_hw_params_set_period_size_near(handle, params, &period_size, 0);
 	if (err < 0) return err;
 
-	snd_pcm_uframes_t buffer_size = period_size * 4;  // 4 periods = 80ms buffer for stability
+	snd_pcm_uframes_t buffer_size = period_size * 12;  // 12 periods = 240ms buffer for maximum jitter tolerance
 	err = snd_pcm_hw_params_set_buffer_size_near(handle, params, &buffer_size);
 	if (err < 0) return err;
 
@@ -379,7 +379,7 @@ int jetkvm_audio_capture_init() {
 	opus_encoder_ctl(encoder, OPUS_SET_LSB_DEPTH(OPUS_LSB_DEPTH));
 
 	opus_encoder_ctl(encoder, OPUS_SET_INBAND_FEC(1));
-	opus_encoder_ctl(encoder, OPUS_SET_PACKET_LOSS_PERC(20));
+	opus_encoder_ctl(encoder, OPUS_SET_PACKET_LOSS_PERC(5));
 
 	capture_initialized = 1;
 	capture_initializing = 0;

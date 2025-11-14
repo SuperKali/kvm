@@ -6,4 +6,5 @@ export const DOWNGRADE_VERSION = import.meta.env.VITE_DOWNGRADE_VERSION || "0.4.
 export const DEVICE_API = "";
 
 // Opus codec parameters for stereo audio with error correction
-export const OPUS_STEREO_PARAMS = 'stereo=1;sprop-stereo=1;maxaveragebitrate=128000;usedtx=1;useinbandfec=1';
+// usedtx disabled to prevent choppy audio, ptime=20 for 20ms packets, VBR for timing tolerance
+export const OPUS_STEREO_PARAMS = 'stereo=1;sprop-stereo=1;maxaveragebitrate=128000;useinbandfec=1;ptime=20';
