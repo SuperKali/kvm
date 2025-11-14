@@ -257,7 +257,7 @@ export default function Actionbar({
                 <IconComponent
                   className={
                     recordingStatus === "recording"
-                      ? "h-4 w-4 animate-pulse text-red-600"
+                      ? "!h-4 !w-4 animate-pulse !text-red-600"
                       : className
                   }
                 />
