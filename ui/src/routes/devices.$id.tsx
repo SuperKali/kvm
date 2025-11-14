@@ -441,6 +441,9 @@ export default function KvmIdRoute() {
         ...(isInCloud && iceConfig?.iceServers
           ? { iceServers: [iceConfig?.iceServers] }
           : {}),
+        // Optimize for low-latency audio streaming
+        bundlePolicy: 'max-bundle',      // Single transport for all media
+        rtcpMuxPolicy: 'require',        // Multiplexed RTCP for lower overhead
       });
 
       setPeerConnectionState(pc.connectionState);
@@ -540,6 +543,17 @@ export default function KvmIdRoute() {
 
     const audioTrans = pc.addTransceiver("audio", { direction: "sendrecv" });
     setAudioTransceiver(audioTrans);
+
+    // Minimize jitter buffer delay for smooth low-latency audio
+    const audioReceiver = audioTrans.receiver;
+    if (audioReceiver && 'playoutDelayHint' in audioReceiver) {
+      try {
+        (audioReceiver as any).playoutDelayHint = 0.0;  // Minimum jitter buffer
+        console.debug("[Audio] Set playoutDelayHint to 0.0 for minimal latency");
+      } catch (e) {
+        console.warn("[Audio] Failed to set playoutDelayHint:", e);
+      }
+    }
 
     const rpcDataChannel = pc.createDataChannel("rpc");
     rpcDataChannel.onclose = () => console.log("rpcDataChannel has closed");
