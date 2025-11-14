@@ -255,9 +255,11 @@ export default function Actionbar({
               const IconComponent = recordingStatus === "recording" ? LuCircleDot : LuCircle;
               return (
                 <IconComponent
-                  className={cx(className, {
-                    "animate-pulse text-red-600": recordingStatus === "recording",
-                  })}
+                  className={
+                    recordingStatus === "recording"
+                      ? "h-4 w-4 animate-pulse text-red-600"
+                      : className
+                  }
                 />
               );
             }}
