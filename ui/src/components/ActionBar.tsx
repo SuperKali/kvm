@@ -245,7 +245,7 @@ export default function Actionbar({
           </Popover>
           <Button
             size="XS"
-            theme={recordingStatus === "recording" ? "danger" : "light"}
+            theme="light"
             text={
               recordingStatus === "recording"
                 ? `Recording ${formatDuration(recordingDuration)}`
