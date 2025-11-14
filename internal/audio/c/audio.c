@@ -60,11 +60,11 @@ static uint8_t opus_complexity = 5;  // Higher complexity for better quality
 static uint16_t max_packet_size = 1500;
 
 // Opus encoder constants (hardcoded for production)
-#define OPUS_VBR 1                      // VBR enabled
+#define OPUS_VBR 0                      // CBR for stable audio (VBR disabled)
 #define OPUS_VBR_CONSTRAINT 1           // Constrained VBR (prevents bitrate starvation at low volumes)
 #define OPUS_SIGNAL_TYPE 3002           // OPUS_SIGNAL_MUSIC (better transient handling)
 #define OPUS_BANDWIDTH 1104             // OPUS_BANDWIDTH_SUPERWIDEBAND (16kHz)
-#define OPUS_DTX 1                      // DTX enabled (bandwidth optimization)
+#define OPUS_DTX 0                      // DTX disabled to prevent choppy audio
 #define OPUS_LSB_DEPTH 16               // 16-bit depth
 
 // ALSA retry configuration
