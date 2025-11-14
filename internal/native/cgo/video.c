@@ -123,6 +123,10 @@ static void populate_venc_attr(VENC_CHN_ATTR_S *stAttr, RK_U32 bitrate, RK_U32 m
     stAttr->stRcAttr.stH264Vbr.u32BitRate = bitrate;
     stAttr->stRcAttr.stH264Vbr.u32MaxBitRate = max_bitrate;
     stAttr->stRcAttr.stH264Vbr.u32Gop = 60;
+    stAttr->stRcAttr.stH264Vbr.u32SrcFrameRateNum = 60;  // Source framerate numerator (60 fps)
+    stAttr->stRcAttr.stH264Vbr.u32SrcFrameRateDen = 1;   // Source framerate denominator (60/1 = 60 fps)
+    stAttr->stRcAttr.stH264Vbr.fr32DstFrameRateNum = 60; // Target output framerate numerator
+    stAttr->stRcAttr.stH264Vbr.fr32DstFrameRateDen = 1;  // Target output framerate denominator
 
     stAttr->stVencAttr.enType = RK_VIDEO_ID_AVC;
     stAttr->stVencAttr.enPixelFormat = RK_FMT_YUV422_YUYV;
