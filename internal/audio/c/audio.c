@@ -60,7 +60,7 @@ static uint8_t opus_complexity = 5;  // Higher complexity for better quality
 static uint16_t max_packet_size = 1500;
 
 // Opus encoder constants (hardcoded for production)
-#define OPUS_VBR 0                      // CBR for stable audio (VBR disabled)
+#define OPUS_VBR 1                      // VBR enabled for better timing tolerance
 #define OPUS_VBR_CONSTRAINT 1           // Constrained VBR (prevents bitrate starvation at low volumes)
 #define OPUS_SIGNAL_TYPE 3002           // OPUS_SIGNAL_MUSIC (better transient handling)
 #define OPUS_BANDWIDTH 1104             // OPUS_BANDWIDTH_SUPERWIDEBAND (16kHz)
@@ -288,7 +288,7 @@ static int configure_alsa_device(snd_pcm_t *handle, const char *device_name) {
 	err = snd_pcm_hw_params_set_period_size_near(handle, params, &period_size, 0);
 	if (err < 0) return err;
 
-	snd_pcm_uframes_t buffer_size = period_size * 4;  // 4 periods = 80ms buffer for stability
+	snd_pcm_uframes_t buffer_size = period_size * 8;  // 8 periods = 160ms buffer for better jitter tolerance
 	err = snd_pcm_hw_params_set_buffer_size_near(handle, params, &buffer_size);
 	if (err < 0) return err;
 
