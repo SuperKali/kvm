@@ -94,8 +94,8 @@ static void detect_sleep_mode()
 
 double calculate_bitrate(float bitrate_factor, int width, int height)
 {
-    const int32_t base_bitrate_high = 2000;
-    const int32_t base_bitrate_low = 512;
+    const int32_t base_bitrate_high = 10000;
+    const int32_t base_bitrate_low = 2000;
 
     double pixels = (double)width * height;
     double ref_pixels = 1920.0 * 1080.0;
@@ -122,7 +122,7 @@ static void populate_venc_attr(VENC_CHN_ATTR_S *stAttr, RK_U32 bitrate, RK_U32 m
     stAttr->stRcAttr.enRcMode = VENC_RC_MODE_H264VBR;
     stAttr->stRcAttr.stH264Vbr.u32BitRate = bitrate;
     stAttr->stRcAttr.stH264Vbr.u32MaxBitRate = max_bitrate;
-    stAttr->stRcAttr.stH264Vbr.u32Gop = 60;
+    stAttr->stRcAttr.stH264Vbr.u32Gop = 30;
 
     stAttr->stVencAttr.enType = RK_VIDEO_ID_AVC;
     stAttr->stVencAttr.enPixelFormat = RK_FMT_YUV422_YUYV;
