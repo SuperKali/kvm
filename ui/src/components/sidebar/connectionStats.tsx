@@ -70,6 +70,12 @@ export default function ConnectionStatsSidebar() {
               timestamp: report.timestamp,
               networkThroughputMbps,
             });
+          } else {
+            // Initialize with 0 Mbps on first measurement
+            appendNetworkThroughputStats({
+              timestamp: report.timestamp,
+              networkThroughputMbps: 0,
+            });
           }
 
           prevBytesReceived.current = report.bytesReceived;

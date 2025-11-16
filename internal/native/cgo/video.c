@@ -94,8 +94,8 @@ static void detect_sleep_mode()
 
 double calculate_bitrate(float bitrate_factor, int width, int height)
 {
-    const int32_t base_bitrate_high = 2000;
-    const int32_t base_bitrate_low = 512;
+    const int32_t base_bitrate_high = 8000;
+    const int32_t base_bitrate_low = 1000;
 
     double pixels = (double)width * height;
     double ref_pixels = 1920.0 * 1080.0;
