@@ -32,6 +32,8 @@ export default function ConnectionStatsSidebar() {
   const [remoteIPAddress, setRemoteIPAddress] = useState<string | null>(null);
   const prevBytesReceived = useRef<number | null>(null);
   const prevTimestamp = useRef<number | null>(null);
+  const throughputSamples = useRef<number[]>([]);
+  const maxSamples = 4; // Keep last 4 samples for moving average
 
   useInterval(function collectWebRTCStats() {
     (async () => {
@@ -61,14 +63,25 @@ export default function ConnectionStatsSidebar() {
 
             // Convert to Mbps: (deltaBytes * 8 bits/byte) / (deltaTimeSeconds) / 1000000 bits/Mbps
             // Avoid division by zero if deltaTime is too small
-            const networkThroughputMbps =
+            const instantThroughput =
               deltaTimeSeconds > 0
                 ? Math.max(0, (deltaBytesReceived * 8) / deltaTimeSeconds / 1000000)
                 : 0;
 
+            // Add to samples buffer
+            throughputSamples.current.push(instantThroughput);
+            if (throughputSamples.current.length > maxSamples) {
+              throughputSamples.current.shift();
+            }
+
+            // Calculate moving average for smoother values
+            const avgThroughput =
+              throughputSamples.current.reduce((sum, val) => sum + val, 0) /
+              throughputSamples.current.length;
+
             appendNetworkThroughputStats({
               timestamp: report.timestamp,
-              networkThroughputMbps,
+              networkThroughputMbps: avgThroughput,
             });
           } else {
             // Initialize with 0 Mbps on first measurement
@@ -95,7 +108,7 @@ export default function ConnectionStatsSidebar() {
         }
       });
     })();
-  }, 500);
+  }, 300); // Reduced from 500ms to 300ms for faster throughput updates
 
   const jitterBufferDelay = createChartArray(inboundVideoRtpStats, "jitterBufferDelay");
   const jitterBufferEmittedCount = createChartArray(
