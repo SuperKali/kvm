@@ -382,6 +382,10 @@ export interface SettingsState {
   videoContrast: number;
   setVideoContrast: (value: number) => void;
 
+  // Stream quality factor (0.1 to 1.5)
+  streamQuality: number;
+  setStreamQuality: (value: number) => void;
+
   // Audio settings
   audioOutputEnabled: boolean;
   setAudioOutputEnabled: (enabled: boolean) => void;
@@ -438,6 +442,9 @@ export const useSettingsStore = create(
 
       videoContrast: 1.0,
       setVideoContrast: (value: number) => set({ videoContrast: value }),
+
+      streamQuality: 1.0,
+      setStreamQuality: (value: number) => set({ streamQuality: value }),
 
       audioOutputEnabled: true,
       setAudioOutputEnabled: (enabled: boolean) => set({ audioOutputEnabled: enabled }),

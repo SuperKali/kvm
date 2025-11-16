@@ -62,12 +62,15 @@ export default function SettingsVideoRoute() {
     setVideoBrightness,
     videoContrast,
     setVideoContrast,
+    setStreamQuality: setGlobalStreamQuality,
   } = useSettingsStore();
 
   useEffect(() => {
     send("getStreamQualityFactor", {}, (resp: JsonRpcResponse) => {
       if ("error" in resp) return;
-      setStreamQuality(String(resp.result));
+      const quality = Number(resp.result);
+      setStreamQuality(String(quality));
+      setGlobalStreamQuality(quality); // Save to global store
     });
 
     send("getEDID", {}, (resp: JsonRpcResponse) => {
@@ -107,6 +110,7 @@ export default function SettingsVideoRoute() {
 
         notifications.success(m.video_stream_quality_set({ quality: streamQualityOptions.find(x => x.value === factor)?.label || "Unknown" }));
         setStreamQuality(factor);
+        setGlobalStreamQuality(Number(factor)); // Save to global store
       },
     );
   };

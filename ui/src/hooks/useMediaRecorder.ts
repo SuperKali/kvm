@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSettingsStore } from "./stores";
 
 export type RecordingState = "idle" | "recording" | "paused";
 
@@ -23,8 +24,20 @@ export default function useMediaRecorder(): UseMediaRecorderResult {
   const startTimeRef = useRef<number>(0);
   const timerRef = useRef<number | null>(null);
 
+  // Get stream quality from settings
+  const { streamQuality } = useSettingsStore();
+
   // Check if MediaRecorder is supported
   const isSupported = typeof MediaRecorder !== "undefined";
+
+  // Calculate video bitrate based on quality factor (same formula as backend)
+  const calculateVideoBitrate = (qualityFactor: number): number => {
+    const BASE_BITRATE_HIGH = 8000; // Kbps
+    const BASE_BITRATE_LOW = 1000; // Kbps
+
+    const baseBitrate = BASE_BITRATE_LOW + (BASE_BITRATE_HIGH - BASE_BITRATE_LOW) * qualityFactor;
+    return baseBitrate * 1000; // Convert to bps
+  };
 
   // Update duration timer
   useEffect(() => {
@@ -71,11 +84,14 @@ export default function useMediaRecorder(): UseMediaRecorderResult {
           mimeType = "video/webm";
         }
 
-        // Create MediaRecorder with optimal settings
+        // Calculate bitrate based on current quality setting
+        const videoBitrate = calculateVideoBitrate(streamQuality);
+
+        // Create MediaRecorder with quality-matched settings
         const recorder = new MediaRecorder(stream, {
           mimeType,
-          videoBitsPerSecond: 2500000, // 2.5 Mbps
-          audioBitsPerSecond: 128000,  // 128 kbps
+          videoBitsPerSecond: videoBitrate, // Matches stream quality setting
+          audioBitsPerSecond: 256000,       // 256 kbps - high audio quality
         });
 
         // Collect data chunks
@@ -125,14 +141,18 @@ export default function useMediaRecorder(): UseMediaRecorderResult {
         startTimeRef.current = Date.now();
         setRecordingState("recording");
 
-        console.info("[MediaRecorder] Recording started", { mimeType });
+        console.info("[MediaRecorder] Recording started", {
+          mimeType,
+          videoBitrate: `${(videoBitrate / 1000000).toFixed(1)} Mbps`,
+          qualityFactor: streamQuality
+        });
       } catch (err) {
         console.error("[MediaRecorder] Failed to start recording:", err);
         setError(err instanceof Error ? err.message : "Failed to start recording");
         setRecordingState("idle");
       }
     },
-    [isSupported]
+    [isSupported, streamQuality]
   );
 
   // Stop recording
