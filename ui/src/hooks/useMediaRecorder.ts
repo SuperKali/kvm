@@ -91,7 +91,7 @@ export default function useMediaRecorder(): UseMediaRecorderResult {
         const recorder = new MediaRecorder(stream, {
           mimeType,
           videoBitsPerSecond: videoBitrate, // Matches stream quality setting
-          audioBitsPerSecond: 256000,       // 256 kbps - high audio quality
+          audioBitsPerSecond: 128000,       // 128 kbps - matches device output
         });
 
         // Collect data chunks

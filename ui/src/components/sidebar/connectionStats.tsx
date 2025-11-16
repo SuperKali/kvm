@@ -1,6 +1,6 @@
 import { useInterval } from "usehooks-ts";
 import { LuCopy } from "react-icons/lu";
-import { useState, useRef } from "react";
+import { useState } from "react";
 
 import { m } from "@localizations/messages.js";
 import { useRTCStore, useUiStore } from "@hooks/stores";
