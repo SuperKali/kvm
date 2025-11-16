@@ -71,8 +71,8 @@ export default function USBStateStatus({
     return;
   }
 
-  // If the peer connection is not connected, show the USB cable as disconnected
-  if (peerConnectionState !== "connected") {
+  // Only show as disconnected if the peer connection has definitively failed or closed
+  if (peerConnectionState === "failed" || peerConnectionState === "closed") {
     const {
       icon: Icon,
       iconClassName,

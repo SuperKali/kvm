@@ -1,12 +1,15 @@
 package logging
 
 import (
+	"strings"
+
 	"github.com/pion/logging"
 	"github.com/rs/zerolog"
 )
 
 type pionLogger struct {
-	logger *zerolog.Logger
+	logger    *zerolog.Logger
+	subsystem string
 }
 
 // Print all messages except trace.
@@ -30,9 +33,24 @@ func (c pionLogger) Infof(format string, args ...any) {
 	c.logger.Info().Msgf(format, args...)
 }
 func (c pionLogger) Warn(msg string) {
+	// Filter out noisy ICE warnings during normal connection establishment
+	if c.subsystem == "ice" && strings.Contains(msg, "Failed to ping without candidate pairs") {
+		// This is normal during ICE gathering, downgrade to debug
+		c.logger.Debug().Msg(msg)
+		return
+	}
 	c.logger.Warn().Msg(msg)
 }
 func (c pionLogger) Warnf(format string, args ...any) {
+	// Filter out noisy ICE warnings during normal connection establishment
+	if c.subsystem == "ice" {
+		formatted := strings.TrimSpace(format)
+		if strings.Contains(formatted, "Failed to ping without candidate pairs") {
+			// This is normal during ICE gathering, downgrade to debug
+			c.logger.Debug().Msgf(format, args...)
+			return
+		}
+	}
 	c.logger.Warn().Msgf(format, args...)
 }
 func (c pionLogger) Error(msg string) {
@@ -53,7 +71,7 @@ func (c pionLoggerFactory) NewLogger(subsystem string) logging.LeveledLogger {
 		Str("component", subsystem).
 		Logger()
 
-	return pionLogger{logger: &logger}
+	return pionLogger{logger: &logger, subsystem: subsystem}
 }
 
 var defaultLoggerFactory = &pionLoggerFactory{}

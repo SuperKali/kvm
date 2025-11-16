@@ -444,6 +444,8 @@ export default function KvmIdRoute() {
         // Optimize for low-latency audio streaming
         bundlePolicy: 'max-bundle',      // Single transport for all media
         rtcpMuxPolicy: 'require',        // Multiplexed RTCP for lower overhead
+        // Pre-gather ICE candidates for faster connection establishment
+        iceCandidatePoolSize: 10,        // Pre-allocate candidates before createOffer
       });
 
       setPeerConnectionState(pc.connectionState);
@@ -855,6 +857,17 @@ export default function KvmIdRoute() {
       setHdmiState(hdmiState);
     });
   }, [rpcDataChannel?.readyState, send, setHdmiState]);
+
+  useEffect(() => {
+    if (rpcDataChannel?.readyState !== "open") return;
+    console.log("Requesting USB state");
+    send("getUSBState", {}, (resp: JsonRpcResponse) => {
+      if ("error" in resp) return;
+      const usbState = resp.result as USBStates;
+      console.debug("Setting USB state", usbState);
+      setUsbState(usbState);
+    });
+  }, [rpcDataChannel?.readyState, send, setUsbState]);
 
   const [audioInputAutoEnableLoaded, setAudioInputAutoEnableLoaded] = useState(false);
   useEffect(() => {

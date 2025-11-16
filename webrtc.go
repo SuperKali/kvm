@@ -212,6 +212,19 @@ func newSession(config SessionConfig) (*Session, error) {
 	webrtcSettingEngine := webrtc.SettingEngine{
 		LoggerFactory: logging.GetPionDefaultLoggerFactory(),
 	}
+
+	// Optimize ICE gathering and connection establishment for faster connectivity
+	// Reduce ICE timeouts for faster failure detection and connection establishment
+	webrtcSettingEngine.SetICETimeouts(
+		2*time.Second,  // DisconnectedTimeout - faster detection of disconnections
+		10*time.Second, // FailedTimeout - faster detection of connection failures
+		5*time.Second,  // KeepaliveInterval - more frequent keepalives for stability
+	)
+
+	// Prefer UDP for lower latency (UDP only, no TCP candidates)
+	// This reduces the number of candidates to check and speeds up connection
+	webrtcSettingEngine.SetNetworkTypes([]webrtc.NetworkType{webrtc.NetworkTypeUDP4, webrtc.NetworkTypeUDP6})
+
 	iceServer := webrtc.ICEServer{}
 
 	var scopedLogger *zerolog.Logger
