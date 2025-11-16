@@ -21,7 +21,7 @@ interface MetricProps<T, K extends keyof T> {
   gate?: Map<number, unknown>;
   supported?: boolean;
   map?: (p: { date: number; metric: number | null }) => ChartPoint;
-  domain?: [number, number];
+  domain?: [string | number, string | number];
   unit: string;
   heightClassName?: string;
   referenceValue?: number;

@@ -1,6 +1,6 @@
 import { useInterval } from "usehooks-ts";
 import { LuCopy } from "react-icons/lu";
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 import { m } from "@localizations/messages.js";
 import { useRTCStore, useUiStore } from "@hooks/stores";
@@ -25,9 +25,13 @@ export default function ConnectionStatsSidebar() {
     appendLocalCandidateStats,
     appendRemoteCandidateStats,
     appendDiskDataChannelStats,
+    networkThroughputStats,
+    appendNetworkThroughputStats,
   } = useRTCStore();
 
   const [remoteIPAddress, setRemoteIPAddress] = useState<string | null>(null);
+  const prevBytesReceived = useRef<number | null>(null);
+  const prevTimestamp = useRef<number | null>(null);
 
   useInterval(function collectWebRTCStats() {
     (async () => {
@@ -49,6 +53,27 @@ export default function ConnectionStatsSidebar() {
             successfulRemoteCandidateId = report.remoteCandidateId;
           }
           appendCandidatePairStats(report);
+
+          // Calculate network throughput
+          if (prevBytesReceived.current !== null && prevTimestamp.current !== null) {
+            const deltaBytesReceived = report.bytesReceived - prevBytesReceived.current;
+            const deltaTimeSeconds = (report.timestamp - prevTimestamp.current) / 1000;
+
+            // Convert to Mbps: (deltaBytes * 8 bits/byte) / (deltaTimeSeconds) / 1000000 bits/Mbps
+            // Avoid division by zero if deltaTime is too small
+            const networkThroughputMbps =
+              deltaTimeSeconds > 0
+                ? Math.max(0, (deltaBytesReceived * 8) / deltaTimeSeconds / 1000000)
+                : 0;
+
+            appendNetworkThroughputStats({
+              timestamp: report.timestamp,
+              networkThroughputMbps,
+            });
+          }
+
+          prevBytesReceived.current = report.bytesReceived;
+          prevTimestamp.current = report.timestamp;
         } else if (report.type === "local-candidate") {
           // We only want to append the local candidate stats that were used in nominated candidate pair
           if (successfulLocalCandidateId === report.id) {
@@ -149,6 +174,20 @@ export default function ConnectionStatsSidebar() {
                   })}
                   domain={[0, 600]}
                   unit={m.connection_stats_unit_milliseconds()}
+                />
+
+                {/* WebRTC Traffic */}
+                <Metric
+                  title={m.connection_stats_network_throughput()}
+                  description={m.connection_stats_network_throughput_description()}
+                  stream={networkThroughputStats}
+                  metric="networkThroughputMbps"
+                  map={x => ({
+                    date: x.date,
+                    metric: x.metric != null ? Number(x.metric.toFixed(2)) : null,
+                  })}
+                  domain={["auto", "auto"]}
+                  unit={m.connection_stats_unit_mbps()}
                 />
               </div>
 
