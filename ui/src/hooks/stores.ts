@@ -172,10 +172,6 @@ export interface RTCState {
   diskDataChannelStats: Map<number, RTCDataChannelStats>;
   appendDiskDataChannelStats: (stats: RTCDataChannelStats) => void;
 
-  // Network throughput stats
-  networkThroughputStats: Map<number, { timestamp: number; networkThroughputMbps: number }>;
-  appendNetworkThroughputStats: (stats: { timestamp: number; networkThroughputMbps: number }) => void;
-
   terminalChannel: RTCDataChannel | null;
   setTerminalChannel: (channel: RTCDataChannel) => void;
 }
@@ -256,13 +252,6 @@ export const useRTCStore = create<RTCState>(set => ({
   appendDiskDataChannelStats: stats => {
     set(prevState => ({
       diskDataChannelStats: appendStatToMap(stats, prevState.diskDataChannelStats),
-    }));
-  },
-
-  networkThroughputStats: new Map(),
-  appendNetworkThroughputStats: stats => {
-    set(prevState => ({
-      networkThroughputStats: appendStatToMap(stats, prevState.networkThroughputStats),
     }));
   },
 
