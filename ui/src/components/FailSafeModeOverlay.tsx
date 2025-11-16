@@ -89,11 +89,20 @@ export function FailSafeModeOverlay({ reason }: FailSafeModeOverlayProps) {
   const handleReportAndDownloadLogs = () => {
     setIsDownloadingLogs(true);
 
+    // Add timeout to prevent infinite loop
+    const timeout = setTimeout(() => {
+      setIsDownloadingLogs(false);
+      notifications.error("Failed to download logs: request timed out");
+      setHasDownloadedLogs(true); // Allow user to proceed even without logs
+    }, 30000); // 30 second timeout
+
     send("getFailSafeLogs", {}, async (resp: JsonRpcResponse) => {
+      clearTimeout(timeout);
       setIsDownloadingLogs(false);
 
       if ("error" in resp) {
         notifications.error(`Failed to get recovery logs: ${resp.error.message}`);
+        setHasDownloadedLogs(true); // Allow user to proceed even on error
         return;
       }
 
@@ -107,12 +116,10 @@ export function FailSafeModeOverlay({ reason }: FailSafeModeOverlayProps) {
       const a = document.createElement("a");
       a.href = url;
       a.download = filename;
-      document.body.appendChild(a);
-      await new Promise(resolve => setTimeout(resolve, 1000));
       a.click();
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+
+      // Revoke URL after a delay to ensure download completes
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
 
       notifications.success("Crash logs downloaded successfully");
       setHasDownloadedLogs(true);
