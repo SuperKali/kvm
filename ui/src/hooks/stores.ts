@@ -1072,3 +1072,23 @@ export const useFailsafeModeStore = create<FailsafeModeState>(set => ({
   reason: "",
   setFailsafeMode: (active, reason) => set({ isFailsafeMode: active, reason }),
 }));
+
+export type RecordingStatus = "idle" | "recording" | "paused";
+
+export interface RecordingState {
+  recordingStatus: RecordingStatus;
+  recordingDuration: number;
+  recordingError: string | null;
+  setRecordingStatus: (status: RecordingStatus) => void;
+  setRecordingDuration: (duration: number) => void;
+  setRecordingError: (error: string | null) => void;
+}
+
+export const useRecordingStore = create<RecordingState>(set => ({
+  recordingStatus: "idle",
+  recordingDuration: 0,
+  recordingError: null,
+  setRecordingStatus: (status: RecordingStatus) => set({ recordingStatus: status }),
+  setRecordingDuration: (duration: number) => set({ recordingDuration: duration }),
+  setRecordingError: (error: string | null) => set({ recordingError: error }),
+}));

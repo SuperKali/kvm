@@ -441,6 +441,11 @@ export default function KvmIdRoute() {
         ...(isInCloud && iceConfig?.iceServers
           ? { iceServers: [iceConfig?.iceServers] }
           : {}),
+        // Optimize for low-latency audio streaming
+        bundlePolicy: 'max-bundle',      // Single transport for all media
+        rtcpMuxPolicy: 'require',        // Multiplexed RTCP for lower overhead
+        // Pre-gather ICE candidates for faster connection establishment
+        iceCandidatePoolSize: 10,        // Pre-allocate candidates before createOffer
       });
 
       setPeerConnectionState(pc.connectionState);

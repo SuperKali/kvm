@@ -41,6 +41,7 @@ const edids = [
 ];
 
 const streamQualityOptions = [
+  { value: "1.5", label: m.video_quality_very_high() },
   { value: "1", label: m.video_quality_high() },
   { value: "0.5", label: m.video_quality_medium() },
   { value: "0.1", label: m.video_quality_low() },
@@ -239,22 +240,43 @@ export default function SettingsVideoRoute() {
                 description={m.video_edid_description()}
                 loading={edidLoading}
               >
-                <SelectMenuBasic
-                  size="SM"
-                  label=""
-                  fullWidth
-                  value={customEdidValue ? "custom" : edid || ""}
-                  onChange={e => {
-                    if (e.target.value === "custom") {
-                      setEdid("custom");
-                      setCustomEdidValue("");
-                    } else {
-                      setCustomEdidValue(null);
-                      handleEDIDChange(e.target.value);
-                    }
-                  }}
-                  options={[...edids, { value: "custom", label: m.video_edid_custom() }]}
-                />
+                <div className="flex gap-2 items-center">
+                  <SelectMenuBasic
+                    size="SM"
+                    label=""
+                    fullWidth
+                    value={customEdidValue ? "custom" : edid || ""}
+                    onChange={e => {
+                      if (e.target.value === "custom") {
+                        setEdid("custom");
+                        setCustomEdidValue("");
+                      } else {
+                        setCustomEdidValue(null);
+                        handleEDIDChange(e.target.value);
+                      }
+                    }}
+                    options={[...edids, { value: "custom", label: m.video_edid_custom() }]}
+                  />
+                  <Button
+                    size="SM"
+                    theme="light"
+                    text={m.video_reload_edid()}
+                    loading={edidLoading}
+                    disabled={edidLoading || !edid}
+                    onClick={() => {
+                      // Reset EDID using backend method that switches to temp EDID and back
+                      setEdidLoading(true);
+                      send("resetEDID", {}, (resp: JsonRpcResponse) => {
+                        setEdidLoading(false);
+                        if ("error" in resp) {
+                          notifications.error(m.video_failed_set_edid({ error: resp.error.data || m.unknown_error() }));
+                          return;
+                        }
+                        notifications.success(m.video_edid_reset_success());
+                      });
+                    }}
+                  />
+                </div>
               </SettingsItem>
               {customEdidValue !== null && (
                 <>

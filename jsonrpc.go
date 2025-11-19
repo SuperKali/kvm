@@ -233,14 +233,53 @@ func rpcSetEDID(edid string) error {
 }
 
 func rpcRefreshHdmiConnection() error {
+	// Use the optimized resetEDID function
+	return rpcResetEDID()
+}
+
+func rpcResetEDID() error {
+	// Get current EDID
 	currentEDID, err := nativeInstance.VideoGetEDID()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get current EDID: %w", err)
 	}
-	if currentEDID == "" {
-		currentEDID = nativeInstance.GetDefaultEDID()
+
+	logger.Info().Str("current_edid", currentEDID).Msg("Resetting EDID by switching to temporary EDID and back")
+
+	// Default EDID (JetKVM)
+	const defaultEDID = "00ffffffffffff002a8b01000100000001230104800000782ec9a05747982712484c00000000d1c081c0a9c0b3000101010101010101083a801871382d40582c450000000000001e011d007251d01e206e28550000000000001e000000fc004a65744b564d2048444d490a20000000fd00187801ff1d000a20202020202001e102032e7229097f070d07070f0707509005040302011f132220111214061507831f000068030c0010003021e2050700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000047"
+	// Alternative EDID (Acer B246WL) for temporary switch
+	const alternativeEDID = "00FFFFFFFFFFFF00047265058A3F6101101E0104A53420783FC125A8554EA0260D5054BFEF80714F8140818081C081008B009500B300283C80A070B023403020360006442100001A000000FD00304C575716010A202020202020000000FC0042323436574C0A202020202020000000FF0054384E4545303033383532320A01F802031CF14F90020304050607011112131415161F2309070783010000011D8018711C1620582C250006442100009E011D007251D01E206E28550006442100001E8C0AD08A20E02D10103E9600064421000018C344806E70B028401720A80406442100001E00000000000000000000000000000000000000000000000000000096"
+
+	// Choose temporary EDID (different from current)
+	tempEDID := defaultEDID
+	if strings.EqualFold(currentEDID, defaultEDID) {
+		tempEDID = alternativeEDID
 	}
-	return nativeInstance.VideoSetEDID(currentEDID)
+
+	// Step 1: Switch to temporary EDID
+	logger.Info().Str("temp_edid", tempEDID).Msg("Switching to temporary EDID")
+	err = nativeInstance.VideoSetEDID(tempEDID)
+	if err != nil {
+		return fmt.Errorf("failed to set temporary EDID: %w", err)
+	}
+
+	// Step 2: Wait for HDMI to re-negotiate
+	time.Sleep(200 * time.Millisecond)
+
+	// Step 3: Switch back to original EDID
+	logger.Info().Str("original_edid", currentEDID).Msg("Switching back to original EDID")
+	err = nativeInstance.VideoSetEDID(currentEDID)
+	if err != nil {
+		return fmt.Errorf("failed to restore original EDID: %w", err)
+	}
+
+	// Save the original EDID back to config
+	config.EdidString = currentEDID
+	_ = SaveConfig()
+
+	logger.Info().Msg("EDID reset completed successfully")
+	return nil
 }
 
 func rpcGetVideoLogStatus() (string, error) {
@@ -1339,6 +1378,7 @@ var rpcHandlers = map[string]RPCHandler{
 	"setAutoUpdateState":      {Func: rpcSetAutoUpdateState, Params: []string{"enabled"}},
 	"getEDID":                 {Func: rpcGetEDID},
 	"setEDID":                 {Func: rpcSetEDID, Params: []string{"edid"}},
+	"resetEDID":               {Func: rpcResetEDID},
 	"getVideoLogStatus":       {Func: rpcGetVideoLogStatus},
 	"getVideoSleepMode":       {Func: rpcGetVideoSleepMode},
 	"setVideoSleepMode":       {Func: rpcSetVideoSleepMode, Params: []string{"duration"}},

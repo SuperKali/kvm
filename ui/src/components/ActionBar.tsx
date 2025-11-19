@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useRef } from "react";
 import { MdOutlineContentPasteGo } from "react-icons/md";
-import { LuCable, LuHardDrive, LuMaximize, LuSettings, LuSignal, LuVolume2 } from "react-icons/lu";
+import { LuCable, LuCircle, LuCircleDot, LuHardDrive, LuMaximize, LuSettings, LuSignal, LuVolume2 } from "react-icons/lu";
 import { FaKeyboard } from "react-icons/fa6";
 import { Popover, PopoverButton, PopoverPanel } from "@headlessui/react";
 import { CommandLineIcon } from "@heroicons/react/20/solid";
@@ -9,6 +9,7 @@ import { cx } from "@/cva.config";
 import {
   useHidStore,
   useMountMediaStore,
+  useRecordingStore,
   useSettingsStore,
   useUiStore,
 } from "@hooks/stores";
@@ -22,15 +23,25 @@ import ExtensionPopover from "@components/popovers/ExtensionPopover";
 import AudioPopover from "@components/popovers/AudioPopover";
 import { m } from "@localizations/messages.js";
 
+// Format recording duration as MM:SS
+const formatDuration = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+};
+
 export default function Actionbar({
   requestFullscreen,
+  onRecordingToggle,
 }: {
   requestFullscreen: () => Promise<void>;
+  onRecordingToggle?: () => void;
 }) {
   const { navigateTo } = useDeviceUiNavigation();
   const { isVirtualKeyboardEnabled, setVirtualKeyboardEnabled } = useHidStore();
   const { setDisableVideoFocusTrap, terminalType, setTerminalType, toggleSidebarView } = useUiStore();
   const { remoteVirtualMediaState } = useMountMediaStore();
+  const { recordingStatus, recordingDuration } = useRecordingStore();
   const { developerMode } = useSettingsStore();
 
   // This is the only way to get a reliable state change for the popover
@@ -232,6 +243,26 @@ export default function Actionbar({
               }}
             </PopoverPanel>
           </Popover>
+          <Button
+            size="XS"
+            theme="light"
+            text={
+              recordingStatus === "recording"
+                ? `Recording ${formatDuration(recordingDuration)}`
+                : "Record"
+            }
+            LeadingIcon={({ className }) => {
+              const IconComponent = recordingStatus === "recording" ? LuCircleDot : LuCircle;
+              return (
+                <IconComponent
+                  className={cx(className, {
+                    "animate-pulse text-red-600": recordingStatus === "recording",
+                  })}
+                />
+              );
+            }}
+            onClick={onRecordingToggle}
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-x-2 gap-y-2">

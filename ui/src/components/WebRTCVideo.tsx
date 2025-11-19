@@ -4,8 +4,11 @@ import { useResizeObserver } from "usehooks-ts";
 import { cx } from "@/cva.config";
 import useKeyboard from "@hooks/useKeyboard";
 import useMouse from "@hooks/useMouse";
+import useMediaRecorder from "@hooks/useMediaRecorder";
+import { useJsonRpc } from "@hooks/useJsonRpc";
 import {
   useRTCStore,
+  useRecordingStore,
   useSettingsStore,
   useVideoStore,
 } from "@hooks/stores";
@@ -33,11 +36,14 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
   const [audioAutoplayBlocked, setAudioAutoplayBlocked] = useState(false);
   const [isPointerLockActive, setIsPointerLockActive] = useState(false);
   const [isKeyboardLockActive, setIsKeyboardLockActive] = useState(false);
+  const [streamQualityFactor, setStreamQualityFactor] = useState<number>(1.0);
 
   const isPointerLockPossible = isSecureContext();
 
-  // Store hooks
+  // Store hooks and JSON-RPC
   const settings = useSettingsStore();
+  const { audioBitrate } = useSettingsStore();
+  const { send } = useJsonRpc();
   const { handleKeyPress, resetKeyboardState } = useKeyboard();
   const {
     getRelMouseMoveHandler,
@@ -203,6 +209,83 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
       navigationUI: "show",
     });
   }, [isFullscreenEnabled, requestKeyboardLock, requestPointerLock]);
+
+  // Recording functionality
+  const mediaRecorder = useMediaRecorder();
+  const {
+    recordingStatus,
+    setRecordingStatus,
+    setRecordingDuration,
+    setRecordingError
+  } = useRecordingStore();
+
+  // Sync recording state with store
+  useEffect(() => {
+    setRecordingStatus(mediaRecorder.recordingState);
+  }, [mediaRecorder.recordingState, setRecordingStatus]);
+
+  useEffect(() => {
+    setRecordingDuration(mediaRecorder.duration);
+  }, [mediaRecorder.duration, setRecordingDuration]);
+
+  useEffect(() => {
+    setRecordingError(mediaRecorder.error);
+  }, [mediaRecorder.error, setRecordingError]);
+
+  // Handle recording toggle
+  const handleRecordingToggle = useCallback(() => {
+    if (!mediaRecorder.isSupported) {
+      notifications.error("Recording is not supported in this browser");
+      return;
+    }
+
+    if (recordingStatus === "recording") {
+      // Stop recording
+      mediaRecorder.stopRecording();
+      notifications.success("Recording stopped. File will download shortly.");
+    } else {
+      // Start recording - combine video and audio streams
+      if (!videoElm.current || !videoElm.current.srcObject) {
+        notifications.error("No video stream available to record");
+        return;
+      }
+
+      const videoStream = videoElm.current.srcObject as MediaStream;
+      const combinedStream = new MediaStream();
+
+      // Add video tracks
+      videoStream.getVideoTracks().forEach(track => {
+        combinedStream.addTrack(track);
+      });
+
+      // Add audio tracks from all audio elements
+      audioElementsRef.current.forEach(audioElm => {
+        if (audioElm.srcObject) {
+          const audioStream = audioElm.srcObject as MediaStream;
+          audioStream.getAudioTracks().forEach(track => {
+            combinedStream.addTrack(track);
+          });
+        }
+      });
+
+      // Use current quality factor and audio bitrate from settings
+      mediaRecorder.startRecording(combinedStream, streamQualityFactor, audioBitrate);
+      notifications.success("Recording started");
+    }
+  }, [mediaRecorder, recordingStatus, videoElm, audioElementsRef, streamQualityFactor, audioBitrate]);
+
+  // Fetch stream quality factor on mount and when peer connection is established
+  useEffect(() => {
+    if (peerConnectionState !== "connected") return;
+
+    send("getStreamQualityFactor", {}, (resp: any) => {
+      if ("result" in resp) {
+        const factor = parseFloat(resp.result) || 1.0;
+        setStreamQualityFactor(factor);
+        console.debug(`[WebRTCVideo] Stream quality factor updated: ${factor}`);
+      }
+    });
+  }, [peerConnectionState, send]);
 
   // setup to release the keyboard lock anytime the fullscreen ends
   useEffect(() => {
@@ -514,7 +597,10 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
             disabled={peerConnection?.connectionState !== "connected"}
             className="contents"
           >
-            <Actionbar requestFullscreen={requestFullscreen} />
+            <Actionbar
+              requestFullscreen={requestFullscreen}
+              onRecordingToggle={handleRecordingToggle}
+            />
             <MacroBar />
           </fieldset>
         </div>
