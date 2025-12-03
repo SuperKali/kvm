@@ -17,7 +17,6 @@ import {
   HDMIErrorOverlay,
   LoadingVideoOverlay,
   NoAutoplayPermissionsOverlay,
-  PointerLockBar,
 } from "@components/VideoOverlay";
 import { keys } from "@/keyboardMappings";
 import notifications from "@/notifications";
@@ -461,16 +460,6 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
     return true;
   }, [hdmiError, isPlaying, peerConnection?.connectionState, videoHeight, videoWidth]);
 
-  const showPointerLockBar = useMemo(() => {
-    if (settings.mouseMode !== "relative") return false;
-    if (!isPointerLockPossible) return false;
-    if (isPointerLockActive) return false;
-    if (isVideoLoading) return false;
-    if (!isPlaying) return false;
-    if (videoHeight === 0 || videoWidth === 0) return false;
-    return true;
-  }, [isPlaying, isPointerLockActive, isPointerLockPossible, isVideoLoading, settings.mouseMode, videoHeight, videoWidth]);
-
   // Conditionally set the filter style so we don't fallback to software rendering if these values are default of 1.0
   const videoStyle = useMemo(() => {
     const isDefault = videoSaturation === 1.0 && videoBrightness === 1.0 && videoContrast === 1.0;
@@ -510,8 +499,6 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
             <div className="relative grow overflow-hidden">
               <div className="flex h-full flex-col">
                 <div className="grid grow grid-rows-(--grid-bodyFooter) overflow-hidden">
-                  {/* In relative mouse mode and under https, we enable the pointer lock, and to do so we need a bar to show the user to click on the video to enable mouse control */}
-                  <PointerLockBar show={showPointerLockBar} />
                   <div className="relative mx-4 my-2 flex items-center justify-center overflow-hidden">
                     <div
                       ref={fullscreenContainerRef}
@@ -531,13 +518,12 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
                         className={cx(
                           "max-h-full max-w-full sm:min-h-[384px] sm:min-w-[512px] bg-black/50 object-contain transition-all duration-1000",
                           {
-                            "cursor-none": settings.isCursorHidden,
+                            "cursor-none": settings.isCursorHidden || (settings.mouseMode === "relative" && isPointerLockActive),
                             "!opacity-0":
                               isVideoLoading ||
                               hdmiError ||
                               hasConnectionIssues ||
                               peerConnectionState !== "connected",
-                            "opacity-60!": showPointerLockBar,
                             "animate-slideUpFade border border-slate-800/30 shadow-xs dark:border-slate-300/20":
                               isPlaying,
                           },

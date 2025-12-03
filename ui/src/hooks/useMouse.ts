@@ -53,6 +53,9 @@ export default function useMouse() {
     () => (e: MouseEvent) => {
       if (mouseMode !== "relative") return;
 
+      // Only send mouse movements when pointer lock is active
+      if (!document.pointerLockElement) return;
+
       // Send mouse movement
       const { buttons } = e;
       sendRelMouseMovement(e.movementX, e.movementY, buttons);
